@@ -212,7 +212,7 @@ resource "aws_security_group" "vpc-ping" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
+# Create Vault nodes
 resource "aws_instance" "vault-node" {
   count                  = var.nodes_number
   ami                    = data.aws_ami.vault.id
