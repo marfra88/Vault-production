@@ -1,4 +1,4 @@
-output "instance_details" {
+output "valt_nodes" {
   value = [
     for instance in aws_instance.vault-node :
     {
