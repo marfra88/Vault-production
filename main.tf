@@ -165,7 +165,7 @@ resource "aws_security_group" "ingress-ssh" {
 
 # Create Security Group - Web Traffic
 resource "aws_security_group" "vpc-web" {
-  name        = "vpc-web-${terraform.workspace}"
+  name        = "vpc-web}"
   vpc_id      = aws_vpc.vpc.id
   description = "Web Traffic"
   ingress {
