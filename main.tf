@@ -193,6 +193,7 @@ resource "aws_security_group" "vpc-web" {
   }
 }
 
+# Create Security Group  - ICMP
 resource "aws_security_group" "vpc-ping" {
   name        = "vpc-ping"
   vpc_id      = aws_vpc.vpc.id
@@ -212,6 +213,7 @@ resource "aws_security_group" "vpc-ping" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 # Create Vault nodes
 resource "aws_instance" "vault-node" {
   count                  = var.nodes_number
