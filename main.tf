@@ -122,26 +122,6 @@ resource "aws_nat_gateway" "nat_gateway" {
   subnet_id     = aws_subnet.public_subnets["public_subnet_1"].id
 }
 
-
-#Generate a TLS self-signed certificate and save the private key locally
-resource "tls_private_key" "generated" {
-  algorithm = "RSA"
-}
-
-resource "local_sensitive_file" "private_key_pem" {
-  content  = tls_private_key.generated.private_key_pem
-  filename = "MyAWSKey.pem"
-}
-
-resource "aws_key_pair" "generated" {
-  key_name   = "MyAWSKey"
-  public_key = tls_private_key.generated.public_key_openssh
-
-  lifecycle {
-    ignore_changes = [key_name]
-  }
-}
-
 # Create Security Group  - SSH Traffic
 resource "aws_security_group" "ingress-ssh" {
   name   = "allow-all-ssh"
@@ -214,13 +194,39 @@ resource "aws_security_group" "vpc-ping" {
   }
 }
 
+#Generate a TLS self-signed certificate and save the private key locally
+resource "tls_private_key" "my_key" {
+  count     = var.nodes_number
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "my_key_pair" {
+  count      = var.nodes_number
+  key_name   = "myKey-${count.index}" # Choose a key name
+  public_key = tls_private_key.my_key[count.index].public_key_openssh
+}
+
+resource "null_resource" "save_private_key" {
+  count = length(aws_instance.vault-node)
+  triggers = {
+    key_name = aws_instance.vault-node[count.index].key_name
+  }
+  provisioner "local-exec" {
+    command = <<-EOT
+      mkdir -p keys
+      echo '${tls_private_key.my_key[count.index].private_key_pem}' > keys/myKey-${count.index}.pem
+    EOT
+  }
+}
+
 # Create Vault nodes
 resource "aws_instance" "vault-node" {
   count                  = var.nodes_number
   ami                    = data.aws_ami.vault.id
   instance_type          = var.instance_type
   subnet_id              = (element(values(aws_subnet.public_subnets), count.index)).id
-  key_name               = aws_key_pair.generated.key_name
+  key_name               = aws_key_pair.my_key_pair[count.index].key_name
   iam_instance_profile   = var.vault_role
   vpc_security_group_ids = [aws_security_group.ingress-ssh.id, aws_security_group.vpc-web.id, aws_security_group.vpc-ping.id]
   tags = {
